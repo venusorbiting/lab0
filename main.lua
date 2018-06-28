@@ -6,6 +6,10 @@
 
     Author: Colton Ogden
     cogden@cs50.harvard.edu
+	
+	Edited by: Alicia Curtis
+	Lab 0 - 6/27/18
+	More Comfortable version
 
     Originally programmed by Atari in 1972. Features two
     paddles, controlled by players, with the goal of getting
@@ -31,9 +35,10 @@ push = require 'push'
 -- https://github.com/vrld/hump/blob/master/class.lua
 Class = require 'class'
 
--- our Paddle class, which stores position and dimensions for each Paddle
+-- two Paddle classes, which stores position and dimensions for each type of Paddle
 -- and the logic for rendering them
 require 'Paddle'
+require 'Paddle2'
 
 -- our Ball class, which isn't much different than a Paddle structure-wise
 -- but which will mechanically function very differently
@@ -92,7 +97,9 @@ function love.load()
     -- initialize our player paddles; make them global so that they can be
     -- detected by other functions and modules
     player1 = Paddle(30, 10, 20, 5)
+	player1b = Paddle2(10, 30, 5, 20)
     player2 = Paddle(VIRTUAL_WIDTH - 50, VIRTUAL_HEIGHT - 15, 20, 5)
+	player2b = Paddle2(VIRTUAL_WIDTH - 10, VIRTUAL_HEIGHT - 30, 5, 20)
 
     -- place a ball in the middle of the screen
     ball = Ball(VIRTUAL_WIDTH / 2 - 2, VIRTUAL_HEIGHT / 2 - 2, 4, 4)
@@ -139,11 +146,13 @@ function love.update(dt)
     if gameState == 'serve' then
         -- before switching to play, initialize ball's velocity based
         -- on player who last scored
-        ball.dx = math.random(-50, 50)
+        --ball.dx = math.random(-50, 50)
         if servingPlayer == 1 then
+		    ball.dx = math.random(-50, 50)
             ball.dy = math.random(140, 200)
         else
-            ball.dy = -math.random(140, 200)
+			ball.dy = math.random(-50, 50)
+            ball.dx = -math.random(140, 200)
         end
     elseif gameState == 'play' then
         -- detect ball collision with paddles, reversing dx if true and
@@ -175,25 +184,37 @@ function love.update(dt)
 
             sounds['paddle_hit']:play()
         end
+		
+		if ball:collides(player1b) then
+            ball.dx = -ball.dx * 1.03
+            ball.x = player1b.x + 5
 
-        -- detect upper and lower screen boundary collision, playing a sound
-        -- effect and reversing dy if true [CHANGED TO REVERSE IT! -AC]
-        if ball.x <= 0 then
-            ball.x = 0
-            ball.dx = -ball.dx
-            sounds['wall_hit']:play()
+            -- keep velocity going in the same direction, but randomize it
+            if ball.dy < 0 then
+                ball.dy = -math.random(10, 150)
+            else
+                ball.dy = math.random(10, 150)
+            end
+
+            sounds['paddle_hit']:play()
+        end
+        if ball:collides(player2b) then
+            ball.dx = -ball.dx * 1.03
+            ball.x = player2b.x - 4
+
+            -- keep velocity going in the same direction, but randomize it
+            if ball.dy < 0 then
+                ball.dy = -math.random(10, 150)
+            else
+                ball.dy = math.random(10, 150)
+            end
+
+            sounds['paddle_hit']:play()
         end
 
-        -- -4 to account for the ball's size
-        if ball.x >= VIRTUAL_WIDTH - 4 then
-            ball.x = VIRTUAL_WIDTH - 4
-            ball.dx = -ball.dx
-            sounds['wall_hit']:play()
-        end
-
-        -- if we reach the left or right edge of the screen, go back to serve
-        -- and update the score and serving player [CHANGED TO REVERSE IT! -AC]
-        if ball.y < 0 then
+        -- if we reach the top or bottom edge of the screen, go back to serve
+        -- and update the score and serving player
+        if ball.y < 0 or ball.y > VIRTUAL_HEIGHT then
             servingPlayer = 1
             player2Score = player2Score + 1
             sounds['score']:play()
@@ -209,8 +230,10 @@ function love.update(dt)
                 ball:reset()
             end
         end
-
-        if ball.y > VIRTUAL_HEIGHT then
+		
+		-- if we reach the top or bottom edge of the screen, go back to serve
+        -- and update the score and serving player
+        if ball.x < 0 or ball.x > VIRTUAL_WIDTH then
             servingPlayer = 2
             player1Score = player1Score + 1
             sounds['score']:play()
@@ -229,21 +252,37 @@ function love.update(dt)
     -- paddles can move no matter what state we're in
     --
     -- player 1
-    if love.keyboard.isDown('a') then
+    if love.keyboard.isDown('w') then
         player1.dx = -PADDLE_SPEED
-    elseif love.keyboard.isDown('d') then
+    elseif love.keyboard.isDown('s') then
         player1.dx = PADDLE_SPEED
     else
         player1.dx = 0
     end
 
+	if love.keyboard.isDown('up') then
+        player1b.dy = -PADDLE_SPEED
+    elseif love.keyboard.isDown('down') then
+        player1b.dy = PADDLE_SPEED
+    else
+        player1b.dy = 0
+    end
+	
     -- player 2
-    if love.keyboard.isDown('left') then
+    if love.keyboard.isDown('a') then
         player2.dx = -PADDLE_SPEED
-    elseif love.keyboard.isDown('right') then
+    elseif love.keyboard.isDown('d') then
         player2.dx = PADDLE_SPEED
     else
         player2.dx = 0
+    end
+	
+	if love.keyboard.isDown('left') then
+        player2b.dy = -PADDLE_SPEED
+    elseif love.keyboard.isDown('right') then
+        player2b.dy = PADDLE_SPEED
+    else
+        player2b.dy = 0
     end
 
     -- update our ball based on its DX and DY only if we're in play state;
@@ -253,7 +292,9 @@ function love.update(dt)
     end
 
     player1:update(dt)
+	player1b:update(dt)
     player2:update(dt)
+	player2b:update(dt)
 end
 
 --[[
@@ -332,7 +373,9 @@ function love.draw()
     displayScore()
     
     player1:render()
+	player1b:render()
     player2:render()
+	player2b:render()
     ball:render()
 
     -- display FPS for debugging; simply comment out to remove
